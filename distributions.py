@@ -196,16 +196,54 @@ class SMA(mc.Continuous):
 
         where A is I + rho W
 
+        the sparse cached log determinant assumes I - rho W = A, and computes
+        the log determinant of A wrt rho with cached W. 
+
+        To get this right with the SMA, we need to use -rho in the logdet. 
         """
 
         delta = value - self.mu
-        ld = self.spld(self.rho)
+        ld = self.spld(-self.rho) 
         out = -self.W.n / 2.0 * tt.log(np.pi * self.scale)
         out -= ld
 
         kern = slinalg.solve(self.AAt, delta)
         kern = tt.mul(delta, kern)
-        kern = kern * self.scale**-2
         kern = kern.sum()
+        kern = kern * self.scale**-2
+        kern /= 2.0
+        return out - kern
+
+class CAR(mc.Continuous):
+    def __init__(self, mu, scale, rho, W, *args, **kwargs):
+        self.mean = self.median = self.mode = self.mu = mu = tt.as_tensor_variable(mu)
+        self.scale = scale
+        self.W.transform = 'b'
+        self.D = np.diag(W.sparse.toarray().sum(axis=1))
+        self.Tau = (D - rho * W.sparse.toarray()) * scale **-2
+        self.spld = CachedLogDet(W)
+
+    def random(self, point=None, size=None):
+        raise NotImplementedError
+        mu, cov = draw_values([self.mu, self.cov], point=point)
+        def _random(mean, cov, size=None):
+            return stats.multivariate_normal.rvs(mean, cov, 
+                                                 None if size==mean.shape else size)
+        samples = generate_samples(_random, mean=mu, cov=cov, 
+                                   dist_shape=self.shape, broadcast_shape=mu.shape,
+                                   size=size)
+        return samples
+
+    def logp(self, value):
+
+        delta = value - self.mu
+        #CAR has no squared structure in the covariance, so it retains |Omega|^{-1/2}
+        ld = self.spld(self.rho) * .5
+        out = - self.W.n / 2.0 * tt.log(np.pi * self.scale)
+        out -= ld
+
+        kern = tt.dot(self.Tau, delta)
+        kern = tt.mul(delta, kern).sum()
+        kern *= self.scale **-2
         kern /= 2.0
         return out - kern
