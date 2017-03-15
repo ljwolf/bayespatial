@@ -4,7 +4,7 @@ theano.config.optimizer = 'None'
 theano.config.exception_verbosity = 'high'
 import numpy as np
 import pymc3 as mc
-from ops import CachedLogDet
+from ops import CachedLogDet, OrdLogDet
 from theano.tensor import slinalg
 
 from scipy import stats
@@ -30,7 +30,7 @@ class SAR_Error(mc.Continuous):
     rho     :   autoregressive parameter
     W       :   spatial weighting matrix
     """
-    def __init__(self, mu, scale, rho, W,
+    def __init__(self, mu, scale, rho, W, method='LU',
                  *args, **kwargs):
         super(SAR_Error, self).__init__(*args, **kwargs)
         self.mean = self.median = self.mode = self.mu = mu= tt.as_tensor_variable(mu)
@@ -80,7 +80,7 @@ class SAR_Error(mc.Continuous):
         return out - kern
 
 class SAR_Lag(mc.Continuous):
-    def __init__(self, mu, scale, rho, W,
+    def __init__(self, mu, scale, rho, W, method='LU',
                  *args, **kwargs):
         """
 
@@ -104,7 +104,7 @@ class SAR_Lag(mc.Continuous):
         self.scale = scale
         self.W = W
         self.Ws = W.sparse
-        self.spld = CachedLogDet(self.W)
+        self.spld = _log_det_dispatch[method.lower()](self.W)
         self.rho = rho
         self.A = np.eye(W.n) - rho * W.sparse.toarray()
 
@@ -170,8 +170,8 @@ class SAR_Combo(mc.Continuous):
         self.Ws = W.sparse
         self.M = M
         self.Ms = M.sparse
-        self.spldW = CachedLogDet(self.W)
-        self.spldM = CachedLogDet(self.M)
+        self.spldW = _log_det_dispatch[method.lower()](self.W)
+        self.spldM = _log_det_dispatch[method.lower()](self.M)
         self.rho = rho
         self.lambda_ = lambda_
         self.A = np.eye(W.n) - rho * W.sparse.toarray()
@@ -205,7 +205,7 @@ class SAR_Combo(mc.Continuous):
         return out - ker
 
 class SMA(mc.Continuous):
-    def __init__(self, mu, scale, rho, W,
+    def __init__(self, mu, scale, rho, W, method='LU',
                  *args, **kwargs):
         """
         the logp for a spatial moving average error structure is:
@@ -227,7 +227,7 @@ class SMA(mc.Continuous):
         self.scale = scale
         self.W = W
         self.Ws = W.sparse
-        self.spld = CachedLogDet(self.W)
+        self.spld = _log_det_dispatch[method.lower()](self.W)
         self.rho = rho
         self.A = np.eye(W.n) + rho * W.sparse.toarray()
         self.AAt = tt.dot(tt.transpose(self.A), self.A)
@@ -266,7 +266,7 @@ class SMA(mc.Continuous):
         return out - kern
 
 class CAR(mc.Continuous):
-    def __init__(self, mu, scale, rho, W, *args, **kwargs):
+    def __init__(self, mu, scale, rho, W, method='LU', *args, **kwargs):
         """
         the logp for a conditional autoregressive error structure is:
         
@@ -284,6 +284,7 @@ class CAR(mc.Continuous):
         rho     :   autoregressive parameter
         W       :   spatial weighting matrix  
         """
+        raise NotImplementedError('This class isnt ready to go yet')
         self.mean = self.median = self.mode = self.mu = mu = tt.as_tensor_variable(mu)
         self.scale = scale
         self.W.transform = 'b'
@@ -314,3 +315,7 @@ class CAR(mc.Continuous):
         kern *= self.scale **-2
         kern /= 2.0
         return out - kern
+
+_log_det_dispatch = dict(ord=OrdLogDet,
+                         lu=CachedLogDet
+    )

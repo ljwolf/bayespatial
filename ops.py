@@ -52,5 +52,44 @@ class CachedLogDet(Op):
     def spgrad(self, inputs, g_outputs):
         raise NotImplementedError
 
+class OrdLogDet(Op):
+    def __init__(self, W):
+        """
+        Initialize the log determinant of I - rho W
+        """
+        self.I = np.eye(W.n)
+        self.W = W.sparse.toarray()
+        self.evals = np.linalg.eigvals(self.W)
+
+    def make_node(self, rho):
+        rho = tt.as_tensor(rho)
+        ld = tt.scalar(dtype=rho.dtype)
+        return Apply(self, [rho], [ld])
+
+    def perform(self, node, inputs, outputs, params=None):
+        (rho, ) = inputs
+        (ld, ) = outputs
+
+        ld[0] = np.asarray(np.sum(np.log(1 - self.evals * rho)), dtype=rho.dtype)
+
+    def grad(self, inputs, g_outputs):
+        # let A = I - rho W, and dRho(A) be the derivatrive of A wrt Rho
+        # dRho(log(|(AtA)|)) = dRho(log(|(AtA)|)))
+        # = dRho(log(|At|) + log(|A|))
+        # = dRho(log(|A| + log(|A|)))
+        # = 2 dRho(log(|A|))
+        # = 2 |A|^{-1} dRho(|A|) = 2|A|^{-1} tr(Adj(A)dRho(A))
+        # = 2 |A|^{-1} |A| tr(A^{-1}(-W)) = 2 * tr(A^{-1}W)
+        [gz] = g_outputs
+        [rho] = inputs
+        A = self.I - rho * self.W
+        trAiW = slinalg.solve(A, self.W).diagonal().sum()
+        #trAiW = (nlinalg.matrix_inverse(A).dot(self.W)).diagonal().sum()
+        return [trAiW]
+
+    def spgrad(self, inputs, g_outputs):
+        raise NotImplementedError
+
+
 class SpSolve(Op):
     ...
