@@ -73,9 +73,8 @@ class SAR_Error(mc.Continuous):
         kern = tt.dot(self.AtA, delta)
         #kern = tt.dot(ts.dense_from_sparse(taus), delta) # shape issue in MulSD.grad
         #kern = ts.dot(taus, delta) # AssertionError in _is_sparse_variable(gz) in MulSD.grad
-        kern = tt.mul(delta, kern)
-        kern = kern * self.scale**-2
-        kern = kern.sum()
+        kern = tt.mul(delta, kern).sum()
+        kern *= self.scale**-2
         kern /= 2.0
         return out - kern
 
@@ -134,12 +133,13 @@ class SAR_Lag(mc.Continuous):
         out = -self.W.n / 2.0 * tt.log(np.pi * self.scale)
         out += ld
 
-        kern = tt.mul(delta, delta).sum() * self.scale**-2
+        kern = tt.mul(delta, delta).sum()
+        kern *= self.scale**-2
         kern *= .5
-        return out - ker
+        return out - kern
 
 class SAR_Combo(mc.Continuous):
-    def __init__(self, mu, scale, rho, lambda_, W, M=None,
+    def __init__(self, mu, scale, rho, lambda_, W, M=None, method='Ord',
                  *args, **kwargs):
         super(SAR_Combo, self).__init__(*args, **kwargs)
         """
@@ -261,7 +261,7 @@ class SMA(mc.Continuous):
         kern = slinalg.solve(self.AAt, delta)
         kern = tt.mul(delta, kern)
         kern = kern.sum()
-        kern = kern * self.scale**-2
+        kern *= self.scale**-2
         kern /= 2.0
         return out - kern
 

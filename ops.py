@@ -92,4 +92,26 @@ class OrdLogDet(Op):
 
 
 class SpSolve(Op):
-    ...
+    def make_node(self, A, b):
+        A = ts.as_sparse_variable(A)
+        b = ts.as_sparse_or_tensor_variable(b)
+        assert A.ndim == 2
+        assert b.ndim in [1,2]
+
+        x = tt.tensor(dtype=b.dtype)
+        return Apply(self, [A,b], [x])
+
+    def perform(self, node, inputs, output):
+        A,b = inputs
+
+        rval = spla.spsolve(A,b)
+        output[0][0] = rval
+
+    def grad(self, input, output_gradients):
+        A,b = inputs
+        c = self(A,b)
+        c_bar = output_gradients[0]
+        trans_solve_op = SpSolve()
+        b_bar = trans_solve_op(ts.transpose(A), c_bar)
+        A_bar = -ts.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
+        return [A_bar, b_bar]
