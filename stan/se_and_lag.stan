@@ -40,7 +40,7 @@ parameters{
   real constant;
   vector[p] beta;
   real<lower=0>tau;
-  real<lower=1/min(evalues), upper=1/max(evalues)> lambda;
+  real<lower=1/min(evalues), upper=1> lambda;
 }
 transformed parameters{
   matrix[n,n] A;
@@ -59,6 +59,7 @@ model{
   lambda ~ normal(0,.1);
   beta ~ normal(0,1);
   tau ~ cauchy(0, 5);
-  y ~ sparse_sar_error(X * beta + constant, tau, AtA, ldet, eye, n);*/
+  /*y ~ sparse_sar_error(X * beta + constant, tau, AtA, ldet, eye, n);*/
+  /*y ~ sparse_sar_lag(X * beta + constant, tau, A, ldet, eye, n);*/
   /*y ~ normal(X * beta + constant, tau);
 }
