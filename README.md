@@ -1,4 +1,4 @@
-# pymc3_spatial
+# bayespatial
 This is a **pre-alpha** exploration of whether linear models with spatial effects can be done *efficiently* in PyMC3 & stan. My target is to make the sampling as efficient & fast as what I've implemented in Gibbs samplers in [spvcm](https://github.com/ljwolf/spvcm), which models two-level spatially-correlated variance components models using `numpy`.
 
 This incorporates a bit of what I've been doing trying to make PyMC3 & Stan work well with sparse covariance matrices in SAR specifications, as well as the special endogenous lag logp functions. This exploration compares using eigenvalue factorization due to Ord (1975), Sparse Matrix Factorization from SuperLU, and the existing dense Singular Value Decomposition op used in PyMC3 for the log determinant. For a comparison of the speed of the various log determinant methods, check `looking_at_ops.ipynb`. For an example on how to use these methods in a model in PyMC3, look at `example_modelfit.ipynb`. Stan ops for the mixed regressive autoregressive model and SAR-error model are contained in the `stan` branch.
