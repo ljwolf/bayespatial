@@ -25,3 +25,5 @@ So, this repo contains a few models & ops for spatial statistical models in PyMC
 Doing an efficient sparse CAR model may require different sparse ops, but it should be possible to implement this using the same general approach.
 
 The SAR-Error and Spatial Moving Average models are essentially the standard `MvNormal` implemented in PyMC3, but use a special method to compute the logp efficiently. The Combo and Lag models are also similar to the typical `PyMC3` normal distributions, but use different means. Regardless, all models use a sparse log determinant `Op`, implemented in theano. The comparison of these methods is done in `looking_at_ops.ipynb`.
+
+The Stan functions are a little harder to adapt, since I'm not sure yet how to access underlying C++ sparse libraries from pystan. So, only the Ord Eigenvalue method is used there for the log determinants.  
