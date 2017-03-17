@@ -98,7 +98,7 @@ class SAR_Lag(mc.Continuous):
         rho     :   autoregressive parameter
         W       :   spatial weighting matrix
         """
-        super(SAR_Error, self).__init__(*args, **kwargs)
+        super(SAR_Lag, self).__init__(*args, **kwargs)
         self.mean = self.median = self.mode = self.mu = mu= tt.as_tensor_variable(mu)
         self.scale = scale
         self.W = W
@@ -222,7 +222,7 @@ class SMA(mc.Continuous):
         rho     :   autoregressive parameter
         W       :   spatial weighting matrix  
         """
-        super(SAR_Error, self).__init__(*args, **kwargs)
+        super(SMA, self).__init__(*args, **kwargs)
         self.mean = self.median = self.mode = self.mu = mu= tt.as_tensor_variable(mu)
         self.scale = scale
         self.W = W
