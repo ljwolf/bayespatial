@@ -1,5 +1,16 @@
 # pymc3_spatial
-This is a **pre-alpha** exploration of whether linear models with spatial effects can be done *efficiently* in PyMC3. This incorporates a bit of what I've been doing trying to make PyMC3 work well with sparse covariancce matrices in Multivariate Normal distributions. This exploration compares using eigenvalue factorization due to Ord (1975), Sparse Matrix Factorization from SuperLU, and the existing dense Singular Value Decomposition op used in PyMC3 for the log determinant. For a comparison of the speed of the various log determinant methods, check `looking_at_ops.ipynb`. For an example on how to use these methods in a model, look at `example_modelfit.ipynb`. 
+This is a **pre-alpha** exploration of whether linear models with spatial effects can be done *efficiently* in PyMC3 & stan. My target is to make the sampling as efficient & fast as what I've implemented in Gibbs samplers in [spvcm](https://github.com/ljwolf/spvcm), which models two-level spatially-correlated variance components models using `numpy`.
+
+This incorporates a bit of what I've been doing trying to make PyMC3 & Stan work well with sparse covariance matrices in SAR specifications, as well as the special endogenous lag logp functions. This exploration compares using eigenvalue factorization due to Ord (1975), Sparse Matrix Factorization from SuperLU, and the existing dense Singular Value Decomposition op used in PyMC3 for the log determinant. For a comparison of the speed of the various log determinant methods, check `looking_at_ops.ipynb`. For an example on how to use these methods in a model in PyMC3, look at `example_modelfit.ipynb`. Stan ops for the mixed regressive autoregressive model and SAR-error model are contained in the `stan` branch.
+
+Both implementations appear to be "correct," but gradient sampling is exceedingly slow in PyMC3, even with ADVI initialization for NUTS. Stan is also slower than I'd like. 
+
+I know the gradient with respect to the spatial correlation parameter (of any specification) involves a trace of the form `tr((I - rho W)^{-1}W)`, where `W` is `n x n`. That seems to be the main constraint on scaling the gradient sampling. 
+
+What works:
+- Ord (1975) Eigenvalue log determinant op with gradient. Performs: `log |I - rho W| = sum(1 - rho * eigvals)`
+- Sparse LU factorization op with gradient. Performs: `log |I - rho W| = |L||U| = sum(log(|diag(U)|))`
+- Models with Gaussian SAR and spatial moving average terms or responses
 
 ## Why is spatial special?
 Spatial models, such as conditional and simultaneous autoregressive models, often scale poorly as the size of the problem increases. In general, this applies to any model with a multivariate normal response that *cannot be conditioned* into a independence. This conditional independence is a very useful property for spatial multilevel models with exchangeable groups, where conditioning on the upper-level processes provides independence in the lower level processes. But, this is unavailable when using an explicit model of spatial dependence in the covariance at a given level. In specifications where spatial dependence is modeled explicitly in the covariance matrix, the log determinant of the full covariance matrix is required, and is the [heaviest computational load for the model](https://brage.bibsys.no/xmlui/handle/11250/276920).
