@@ -1,5 +1,4 @@
 functions{
-
   real sparse_sar_error_lpdf(vector Y, vector mu, real tau, matrix AtA,
                              real ldet, matrix eye, int n){
     vector[n] ldets ;
@@ -7,14 +6,6 @@ functions{
     kern = quad_form(AtA, Y - mu);
 
     return .5 * (n * log(3.141^.5 * tau)) + ldet - .5 * kern;
-  }
-
-  real sparse_sar_lag_lpdf(vector Y, vector mu, real tau, matrix A,
-                          real ldet, matrix eye, int n){
-    real kern;
-    kern = quad_form(crossprod(A), A*Y - mu);
-
-    return -.5 * (n * log(3.141^.5 * tau)) + ldet - .5*kern;
   }
 
 }
@@ -28,13 +19,8 @@ data {
 }
 
 transformed data{
-    vector[n] zeros;
     matrix[n,n] eye;
     eye = diag_matrix(rep_vector(1.0, n));
-/*
-    vector[n] evalues;
-    evalues = eigenvalues_sym(W);
-*/
   }
 parameters{
   real constant;
@@ -59,7 +45,5 @@ model{
   lambda ~ normal(0,.1);
   beta ~ normal(0,1);
   tau ~ cauchy(0, 5);
-  /*y ~ sparse_sar_error(X * beta + constant, tau, AtA, ldet, eye, n);*/
-  /*y ~ sparse_sar_lag(X * beta + constant, tau, A, ldet, eye, n);*/
-  /*y ~ normal(X * beta + constant, tau);
+  y ~ sparse_sar_error(X * beta + constant, tau, AtA, ldet, eye, n);
 }

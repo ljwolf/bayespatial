@@ -1,0 +1,8 @@
+import theano.tensor as tt
+import theano
+theano.config.optimizer = 'None'
+theano.config.exception_verbosity = 'high'
+import numpy as np
+import pymc3 as mc
+from ops import CachedLogDet, OrdLogDet
+from theano.tensor import slinalg

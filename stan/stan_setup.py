@@ -12,13 +12,14 @@ N,P = X.shape
 W = ps.weights.Queen.from_dataframe(df)
 W.transform = 'r'
 Wm = W.sparse.toarray()
-Yknown = 4 + X.dot(np.asarray([[-2], [4]]))
-Yknown_f = Yknown + np.linalg.solve((np.eye(W.n) - .45 * W.sparse.toarray()), 
-                                    np.random.normal(0,1,size=(W.n,1)))
+filt = np.eye(W.n) - .45 * Wm
+evals = np.linalg.eigvals(Wm)
+Ymean = 4 + X.dot(np.asarray([[-2], [4]]))
+err = np.random.normal(0,1,size=(W.n,1))
+Yknown_f = Ymean + np.linalg.solve(filt,err)
 
-evalues = np.linalg.eigvals(Wm)
-
-data = dict(X = X, y = Yknown_f.flatten(), n = N, p=P, W=Wm, evalues=evalues)
+data = dict(X = X, y = Yknown_f.flatten(), 
+            n = N, p=P, W=Wm, evalues=evals)
 
 
 #test = st.stan(file='./se.stan', data = data, iter=1000) 
